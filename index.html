@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Центр управления · Заявки на выезд</title>
+<style>
+:root{
+  --bg:#f6f7f9;
+  --surface:#fff;
+  --line:#e4e7ec;
+  --line-soft:#f0f2f5;
+  --ink:#101828;
+  --ink-2:#475467;
+  --ink-3:#98a2b3;
+  --accent:#3b5bdb;
+  --accent-soft:#eef2ff;
+  --ok:#0d7a4f; --ok-bg:#e9f8f0; --ok-line:#a6e6c8;
+  --warn:#b54708; --warn-bg:#fff7ed; --warn-line:#fed7aa;
+  --err:#b42318; --err-bg:#fef3f2; --err-line:#fecdca;
+  --r:10px;
+  --sh:0 1px 2px rgba(16,24,40,.05);
+  --sh-lg:0 16px 48px -12px rgba(16,24,40,.25);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,select,input,textarea{font:inherit}
+
+/* ---------- header ---------- */
+.top{
+  background:#101828;color:#fff;padding:9px 20px;min-height:56px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:20;
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:-.01em}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:#5b8def;box-shadow:0 0 0 3px rgba(91,141,239,.22)}
+.brand span{color:#98a2b3;font-weight:400}
+.spacer{flex:1}
+.field{display:flex;align-items:center;gap:7px;font-size:12px;color:#98a2b3}
+.field select{
+  appearance:none;background:#1d2939;color:#e4e7ec;border:1px solid #344054;
+  padding:6px 26px 6px 10px;border-radius:8px;font-size:12.5px;cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'><path d='M1 1l4 4 4-4' stroke='%2398a2b3' stroke-width='1.5' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 9px center;
+}
+.field select:hover{border-color:#475467}
+.ghost{
+  background:transparent;color:#98a2b3;border:1px solid #344054;
+  padding:6px 12px;border-radius:8px;font-size:12.5px;cursor:pointer;
+}
+.ghost:hover{color:#fff;border-color:#475467}
+
+/* ---------- layout ---------- */
+.grid{
+  display:grid;grid-template-columns:minmax(420px,1fr) minmax(430px,530px);
+  gap:16px;padding:16px;align-items:start;max-width:1500px;margin:0 auto;
+}
+@media(max-width:1080px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);overflow:hidden}
+.card > header{
+  padding:13px 16px;border-bottom:1px solid var(--line);
+  display:flex;align-items:baseline;gap:9px;
+}
+.card > header h2{margin:0;font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+.card > header .sub{font-size:12px;color:var(--ink-3)}
+
+/* ---------- request list ---------- */
+.req{
+  display:grid;grid-template-columns:56px 1fr auto;gap:0 12px;
+  padding:13px 16px;border-bottom:1px solid var(--line-soft);cursor:pointer;
+  transition:background .12s;position:relative;
+}
+.req:last-child{border-bottom:0}
+.req:hover{background:#fbfcfd}
+.req:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.req.on{background:var(--accent-soft)}
+.req.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+.req .num{font-variant-numeric:tabular-nums;color:var(--ink-3);font-size:12.5px;padding-top:1px}
+.req .addr{font-weight:550;letter-spacing:-.01em}
+.req .meta{font-size:12px;color:var(--ink-3);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.req .right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.req .team{font-size:12px;color:var(--ink-2)}
+
+.pill{
+  display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+  font-size:11.5px;font-weight:600;white-space:nowrap;border:1px solid transparent;
+}
+.pill i{width:6px;height:6px;border-radius:50%;background:currentColor;display:block}
+.p-wait{background:#f2f4f7;color:#475467}
+.p-ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
+.p-warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-line)}
+.p-err{background:var(--err-bg);color:var(--err);border-color:var(--err-line)}
+.chip{display:inline-block;padding:2px 7px;border-radius:6px;font-size:11px;background:#f2f4f7;color:var(--ink-2)}
+.chip.sla{background:var(--err-bg);color:var(--err);font-weight:600}
+
+.foot{padding:11px 16px;font-size:12px;color:var(--ink-3);background:#fbfcfd;border-top:1px solid var(--line-soft)}
+.foot b{color:var(--ink-2);font-weight:600}
+
+/* ---------- detail ---------- */
+.pane{padding:16px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13px;margin-bottom:14px}
+.facts dt{color:var(--ink-3)}
+.facts dd{margin:0}
+.note{border-radius:var(--r);padding:11px 13px;font-size:12.8px;margin-bottom:14px;border:1px solid}
+.note strong{display:block;margin-bottom:3px;font-size:13px}
+.n-ok{background:var(--ok-bg);border-color:var(--ok-line);color:#054f31}
+.n-warn{background:var(--warn-bg);border-color:var(--warn-line);color:#7a2e0e}
+.n-err{background:var(--err-bg);border-color:var(--err-line);color:#7a271a}
+.n-mut{background:#fbfcfd;border-color:var(--line);color:var(--ink-2)}
+
+.dup{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.dup .c{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;font-size:12.5px;background:#fff}
+.dup .c b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin-bottom:5px}
+.dup .c .a{font-weight:600;color:var(--warn)}
+.dup .c .s{color:var(--ink-3);font-size:11.5px;margin-top:3px}
+
+.lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600;margin:16px 0 8px;display:flex;justify-content:space-between;gap:10px}
+.lbl em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:400}
+
+.team-list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.tm{display:flex;align-items:center;gap:11px;padding:10px 12px;border-bottom:1px solid var(--line-soft);transition:background .12s}
+.tm:last-child{border-bottom:0}
+.tm:hover:not(.blocked){background:#fbfcfd}
+.rk{
+  width:20px;height:20px;flex:none;border-radius:6px;background:var(--accent-soft);color:var(--accent);
+  font-size:11px;font-weight:700;display:grid;place-items:center;
+}
+.rk.mute{background:#f2f4f7;color:var(--ink-3)}
+.tm .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.tm .nm{display:block;font-weight:550;font-size:13px;letter-spacing:-.01em}
+.tm .why{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.35}
+.tm.blocked .nm{color:var(--ink-3);font-weight:500}
+.tm.soft{background:#fdfdfe}
+
+.btn{
+  padding:6px 13px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);
+  cursor:pointer;font-size:12.5px;font-weight:550;transition:.12s;white-space:nowrap;
+}
+.btn:hover:not(:disabled){background:#f8f9fb;border-color:#d0d5dd}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover:not(:disabled){background:#3049c4}
+.btn.dang{border-color:var(--err-line);color:var(--err);background:#fff}
+.btn.dang:hover:not(:disabled){background:var(--err-bg)}
+.btn.sm{padding:4px 10px;font-size:12px}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* ---------- journal ---------- */
+.journal{padding:0 16px 16px}
+.jl{list-style:none;margin:0;padding:0;position:relative}
+.jl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--line)}
+.jl li{position:relative;padding:5px 0 5px 20px;font-size:12px;color:var(--ink-2)}
+.jl li::before{content:"";position:absolute;left:2px;top:11px;width:7px;height:7px;border-radius:50%;background:var(--ink-3);box-shadow:0 0 0 3px #fff}
+.jl li.y::before{background:var(--ok)}
+.jl li.n::before{background:var(--err)}
+.jl .t{color:var(--ink-3);font-variant-numeric:tabular-nums}
+.jl .res{font-weight:600}
+.jl li.y .res{color:var(--ok)} .jl li.n .res{color:var(--err)}
+.empty{font-size:12px;color:var(--ink-3);padding:4px 0}
+
+/* ---------- modal ---------- */
+.scrim{
+  position:fixed;inset:0;background:rgba(16,24,40,.5);backdrop-filter:blur(3px);
+  display:grid;place-items:center;padding:24px;z-index:60;animation:fade .15s ease;
+}
+@keyframes fade{from{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px) scale(.985)}}
+.dlg{
+  background:#fff;border-radius:16px;width:100%;max-width:520px;box-shadow:var(--sh-lg);
+  animation:rise .18s cubic-bezier(.2,.8,.3,1);overflow:hidden;
+}
+.dlg h3{margin:0;padding:16px 20px 14px;font-size:15px;font-weight:600;letter-spacing:-.015em;display:flex;gap:9px;align-items:center}
+.dlg h3 .ic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:13px;flex:none}
+.dlg .b{padding:0 20px 18px}
+.dlg .f{padding:14px 20px;background:#fbfcfd;border-top:1px solid var(--line);display:flex;gap:9px;justify-content:flex-end}
+.opt{
+  display:flex;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);
+  border-radius:9px;margin-bottom:7px;cursor:pointer;font-size:13px;transition:.12s;
+}
+.opt:hover{border-color:#c8cfda;background:#fbfcfd}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt input{accent-color:var(--accent);margin:0}
+textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+  resize:vertical;font-size:13px;margin-top:3px;
+}
+textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.cnt{font-size:11.5px;color:var(--ink-3);margin-top:5px;text-align:right}
+.cnt.bad{color:var(--err)}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:80}
+.tst{
+  background:#101828;color:#fff;padding:11px 15px;border-radius:10px;font-size:12.8px;
+  box-shadow:var(--sh-lg);animation:rise .2s cubic-bezier(.2,.8,.3,1);max-width:340px;
+}
+.tst.bad{background:#912018}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand"><span class="dot"></span>Центр управления <span>· Заявки на выезд</span></div>
+  <div class="spacer"></div>
+  <label class="field">Роль
+    <select id="role">
+      <option value="disp">Диспетчер · Марина</option>
+      <option value="senior">Старший смены · Лебедева Н. П.</option>
+      <option value="viewer">Наблюдатель · без прав</option>
+    </select>
+  </label>
+  <label class="field">Сервисы
+    <select id="svc">
+      <option value="ok">Все доступны</option>
+      <option value="down">История и сверка недоступны</option>
+    </select>
+  </label>
+  <button class="ghost" id="reset">Сбросить</button>
+</div>
+
+<div class="grid">
+  <section class="card">
+    <header><h2>Очередь заявок</h2><span class="sub" id="cnt"></span></header>
+    <div id="list"></div>
+    <div class="foot">
+      Сценарии: <b>1041</b> — обычная работа · <b>1042</b> — конфликт назначения · <b>1043</b> — возможный дубль · <b>1044</b> — нет подходящих бригад
+    </div>
+  </section>
+
+  <section class="card">
+    <header><h2>Назначение</h2><span class="sub" id="hdr"></span></header>
+    <div class="pane" id="pane"></div>
+    <div class="journal">
+      <div class="lbl" style="margin-top:0">Журнал назначений</div>
+      <ul class="jl" id="jl"></ul>
+    </div>
+  </section>
+</div>
+
+<div id="modal"></div>
+<div id="toast"></div>
+
+<script>
+const TEAMS = [
+  {id:'sokolov', name:'Бригада Соколова', tv:false, hist:'улица: 12 выездов за 14 мес', ref:'отказов 3%'},
+  {id:'petrov',  name:'Бригада Петрова',  tv:false, hist:'улица: 7 выездов за 14 мес',  ref:'отказов 4%'},
+  {id:'volkov',  name:'Бригада Волкова',  tv:true,  hist:'улица: 4 выезда за 14 мес',   ref:'отказов 9%'},
+  {id:'ilin',    name:'Бригада Ильина',   tv:true,  hist:'улица: 2 выезда за 14 мес',   ref:'отказов 6%'},
+  {id:'gusev',   name:'Бригада Гусева',   tv:false, hist:'улица: выездов не было',      ref:'отказов 11%'}
+];
+
+const seed = () => ({
+  role:'disp', svc:'ok', sel:1041, log:[],
+  reqs:[
+    {id:1041, addr:'Ленина, 14, кв. 12',    type:'Промывка',        urgent:false, sla:null,  src:'Клиент, телефон', st:'wait',     team:null,    by:null,   at:null,   busy:['gusev'],                    stop:[],          dup:null},
+    {id:1042, addr:'Мира, 22к1, подъезд 3', type:'Аварийный выезд', urgent:true,  sla:'1 ч 12 мин', src:'УК «Комфорт», письмо', st:'assigned', team:'petrov', by:'Игорь', at:'07:58', busy:['petrov','gusev'],           stop:[],          dup:null},
+    {id:1043, addr:'Пролетарская, 12',      type:'Промывка',        urgent:false, sla:null,  src:'УК «Комфорт», письмо', st:'dup',  team:null,    by:null,   at:null,   busy:['gusev'],                    stop:['sokolov'], dup:{id:1039, addr:'ул. Пролетарская д.12', src:'Клиент, телефон', at:'09:04'}},
+    {id:1044, addr:'Заречная, 18',          type:'Телеинспекция',   urgent:false, sla:null,  src:'Клиент, телефон', st:'wait',     team:null,    by:null,   at:null,   busy:['volkov','ilin','gusev'],    stop:[],          dup:null}
+  ]
+});
+let S = seed();
+
+const ST = {
+  wait:     ['Ждёт назначения','p-wait'],
+  assigned: ['Назначена','p-ok'],
+  dup:      ['Возможный дубль','p-warn'],
+  escal:    ['Требует решения старшего','p-err'],
+  merged:   ['Объединена','p-wait'],
+  unchecked:['Дубль не проверен','p-warn']
+};
+
+const $  = id => document.getElementById(id);
+const req = () => S.reqs.find(r => r.id === S.sel);
+const team = id => TEAMS.find(t => t.id === id);
+const who = () => ({disp:'Марина', senior:'Лебедева Н. П.', viewer:'Наблюдатель'})[S.role];
+const mayAct = () => S.role !== 'viewer';
+const clock = () => new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function log(text, ok){ S.log.unshift({text, ok, ts:clock(), who:who()}); }
+function toast(text, bad){
+  const el = document.createElement('div');
+  el.className = 'tst' + (bad ? ' bad' : '');
+  el.textContent = text;
+  $('toast').append(el);
+  setTimeout(() => el.remove(), 3600);
+}
+
+/* показанное состояние: при недоступной сверке дубль не найден */
+function shown(r){
+  if (r.st === 'dup' && S.svc === 'down') return 'unchecked';
+  return r.st;
+}
+
+function candidates(r){
+  return TEAMS.map(t => {
+    let block = null, soft = false;
+    if (r.type === 'Телеинспекция' && !t.tv) block = 'F1 · нет борта телеинспекции';
+    else if (r.stop.includes(t.id))          block = 'F2 · стоп-лист по этому адресу';
+    else if (r.busy.includes(t.id))        { block = 'F3 · занята активным назначением'; soft = true; }
+    return {...t, block, soft};
+  });
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  $('role').value = S.role; $('svc').value = S.svc;
+  $('cnt').textContent = S.reqs.length + ' заявки';
+
+  $('list').innerHTML = S.reqs.map(r => {
+    const [txt, cls] = ST[shown(r)];
+    return `<div class="req ${r.id===S.sel?'on':''}" data-id="${r.id}"
+        role="button" tabindex="0" aria-pressed="${r.id===S.sel}"
+        aria-label="Заявка ${r.id}, ${esc(r.addr)}, ${txt}">
+      <div class="num">${r.id}</div>
+      <div>
+        <div class="addr">${esc(r.addr)}</div>
+        <div class="meta">${r.urgent?'<span class="chip sla">срок 2 ч</span>':''}<span class="chip">${esc(r.type)}</span><span>${esc(r.src)}</span></div>
+      </div>
+      <div class="right">
+        <span class="pill ${cls}"><i></i>${txt}</span>
+        <span class="team">${r.team ? esc(team(r.team).name) : '—'}</span>
+      </div>
+    </div>`;
+  }).join('');
+  [...document.querySelectorAll('.req')].forEach(el => {
+    const open = () => { S.sel = +el.dataset.id; render(); };
+    el.onclick = open;
+    el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
+  });
+
+  $('hdr').textContent = 'заявка №' + S.sel;
+  $('pane').innerHTML = pane(req());
+  [...$('pane').querySelectorAll('[data-act]')].forEach(b => b.onclick = () => act(b.dataset.act, b.dataset.team));
+
+  $('jl').innerHTML = S.log.length
+    ? S.log.map(l => `<li class="${l.ok?'y':'n'}"><span class="t">${l.ts}</span> · ${esc(l.who)} · ${esc(l.text)} — <span class="res">${l.ok?'принято':'отклонено'}</span></li>`).join('')
+    : '<div class="empty">Действий пока не было</div>';
+}
+
+function pane(r){
+  const view = shown(r);
+  const [txt, cls] = ST[view];
+  let h = `<dl class="facts">
+    <dt>Адрес</dt><dd>${esc(r.addr)}</dd>
+    <dt>Тип работ</dt><dd>${esc(r.type)}${r.urgent?` · до срока ${r.sla}`:''}</dd>
+    <dt>Источник</dt><dd>${esc(r.src)}</dd>
+    <dt>Состояние</dt><dd><span class="pill ${cls}"><i></i>${txt}</span></dd>
+  </dl>`;
+
+  if (!mayAct())
+    h += `<div class="note n-err"><strong>Недостаточно прав</strong>Роль «Наблюдатель» не может назначать и переназначать бригады на этом экране. Право проверяет сервис прав платформы, интерфейс только показывает результат проверки.</div>`;
+
+  if (S.svc === 'down')
+    h += `<div class="note n-mut"><strong>Часть сервисов недоступна</strong>История назначений не отвечает — ранжирование отключено, список показан без порядка. Сверка адресов не выполнена, заявки помечены «дубль не проверен». Жёсткие фильтры продолжают работать.</div>`;
+
+  if (view === 'merged')
+    return h + `<div class="note n-ok"><strong>Заявка объединена</strong>Карточка объединена с заявкой №${r.dup.id}, назначение выполняется по основной.</div>`;
+
+  if (view === 'escal')
+    h += `<div class="note n-err"><strong>Передано старшему смены</strong>Заявка ждёт разбора: система не подбирает бригаду наугад. Причина попадёт в месячный пересмотр правил.</div>`;
+
+  if (view === 'dup'){
+    h += `<div class="note n-warn"><strong>Возможный дубль — назначение заблокировано</strong>
+      Найдена карточка на том же адресе, заведённая за последние 24 часа. Решение автоматизации не примет назначение, пока диспетчер не выберет одно из действий.</div>
+      <div class="dup">
+        <div class="c"><b>Текущая №${r.id}</b><div class="a">${esc(r.addr)}</div><div class="s">${esc(r.src)}</div></div>
+        <div class="c"><b>Кандидат №${r.dup.id}</b><div class="a">${esc(r.dup.addr)}</div><div class="s">${esc(r.dup.src)} · заведена ${r.dup.at}</div></div>
+      </div>
+      <div class="row-btns">
+        <button class="btn pri" data-act="merge" ${mayAct()?'':'disabled'}>Объединить с №${r.dup.id}</button>
+        <button class="btn" data-act="notdup" ${mayAct()?'':'disabled'}>Это разные заявки</button>
+      </div>`;
+  }
+
+  if (view === 'assigned'){
+    h += `<div class="note n-ok"><strong>Активное назначение</strong>${esc(team(r.team).name)} · назначил ${esc(r.by)} в ${r.at}. У заявки может быть только одно активное назначение.</div>`;
+  }
+
+  const cand = candidates(r);
+  const free = cand.filter(c => !c.block);
+  const locked = view === 'dup';
+
+  if (!free.length && view !== 'assigned' && view !== 'escal' && !locked){
+    h += `<div class="note n-err"><strong>Подходящих бригад нет</strong>После жёстких фильтров кандидатов не осталось. Заявка не подходит под правила — её разбирает человек.</div>
+      <div class="row-btns"><button class="btn dang" data-act="escal" ${mayAct()?'':'disabled'}>Передать старшему смены</button></div>`;
+  }
+
+  const sub = locked ? 'заблокировано до решения по дублю'
+            : S.svc === 'ok' ? 'по убыванию соответствия' : 'без ранжирования';
+  h += `<div class="lbl">Бригады <em>${sub}</em></div><div class="team-list">`;
+
+  let n = 0;
+  cand.forEach(c => {
+    if (c.block && !c.soft){
+      h += `<div class="tm blocked"><span class="rk mute">—</span>
+        <span class="info"><span class="nm">${c.name}</span><span class="why">${c.block}</span></span></div>`;
+    } else if (c.soft){
+      h += `<div class="tm blocked soft"><span class="rk mute">—</span>
+        <span class="info"><span class="nm">${c.name}</span><span class="why">${c.block} · занятость известна неточно</span></span>
+        <button class="btn sm" data-act="force" data-team="${c.id}" ${mayAct() && !locked ? '' : 'disabled'}>Назначить всё равно</button></div>`;
+    } else {
+      n++;
+      const why = S.svc === 'ok' ? `${c.hist} · ${c.ref}` : 'ранжирование недоступно';
+      h += `<div class="tm"><span class="rk">${S.svc==='ok'?n:'·'}</span>
+        <span class="info"><span class="nm">${c.name}</span><span class="why">${why}</span></span>
+        <button class="btn ${n===1&&S.svc==='ok'&&!locked?'pri':''}" data-act="assign" data-team="${c.id}" ${mayAct() && !locked ? '' : 'disabled'}>Назначить</button></div>`;
+    }
+  });
+  h += `</div>`;
+
+  if (view === 'assigned')
+    h += `<div class="row-btns"><button class="btn dang" data-act="reassign" ${mayAct()?'':'disabled'}>Переназначить с причиной</button></div>`;
+
+  return h;
+}
+
+/* ---------------- actions ---------------- */
+function act(a, tid){
+  const r = req();
+  if (a === 'merge'){  r.st='merged'; log(`Заявка №${r.id} · объединение с №${r.dup.id}`, true); toast('Карточки объединены'); }
+  if (a === 'notdup'){ r.st='wait';   log(`Заявка №${r.id} · помечена «это разные заявки»`, true); toast('Дубль снят, назначение разблокировано'); }
+  if (a === 'escal'){  r.st='escal';  log(`Заявка №${r.id} · передана старшему смены`, true); toast('Заявка в очереди старшего смены'); }
+  if (a === 'reassign') return askReason(r, null);
+
+  if (a === 'assign' || a === 'force'){
+    if (r.st === 'assigned'){
+      log(`Заявка №${r.id} · назначение на ${team(tid).name}`, false);
+      return conflict(r, tid);
+    }
+    r.st='assigned'; r.team=tid; r.by=who(); r.at=clock().slice(0,5);
+    const forced = a === 'force';
+    log(`Заявка №${r.id} · назначение на ${team(tid).name}${forced?' в обход фильтра занятости':''}`, true);
+    toast(forced ? 'Назначено в обход F3, запись в журнале' : `Назначено · ${team(tid).name}`);
+  }
+  render();
+}
+
+const close = () => { $('modal').innerHTML=''; render(); };
+
+function conflict(r, tid){
+  $('modal').innerHTML = `<div class="scrim"><div class="dlg">
+    <h3><span class="ic" style="background:var(--err-bg);color:var(--err)">✕</span>Назначение отклонено</h3>
+    <div class="b">
+      <div class="note n-err" style="margin-bottom:12px"><strong>Заявка №${r.id} уже назначена</strong>
+        ${esc(team(r.team).name)} · назначил ${esc(r.by)} в ${r.at}. Решение автоматизации отклонило вашу попытку: у заявки может быть только одно активное назначение.</div>
+      <div style="font-size:12.8px;color:var(--ink-2)">Молчаливой перезаписи не происходит. Чтобы сменить бригаду, оформите переназначение: старое назначение закроется, бригаде уйдёт отмена, обе записи останутся в журнале.</div>
+    </div>
+    <div class="f"><button class="btn" id="x">Отмена</button><button class="btn pri" id="go">Переназначить с причиной</button></div>
+  </div></div>`;
+  $('x').onclick = close;
+  $('go').onclick = () => askReason(r, tid);
+}
+
+function askReason(r, tid){
+  const reasons = ['Ошибка выбора бригады','Бригада недоступна','Изменились условия на объекте','Требование клиента','Другое'];
+  $('modal').innerHTML = `<div class="scrim"><div class="dlg">
+    <h3><span class="ic" style="background:var(--accent-soft);color:var(--accent)">⇄</span>Переназначение заявки №${r.id}</h3>
+    <div class="b">
+      <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:11px">Причина обязательна: она попадёт в журнал и в недельный разбор у старшего смены.</div>
+      ${reasons.map(o => `<label class="opt"><input type="radio" name="rs" value="${o}"><span>${o}</span></label>`).join('')}
+      <div id="wrap" style="display:none">
+        <textarea id="txt" rows="2" placeholder="Опишите причину — не меньше 10 символов"></textarea>
+        <div class="cnt bad" id="cc">ещё 10 симв.</div>
+      </div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+        Новая бригада: <b>${tid ? esc(team(tid).name) : 'заявка вернётся в очередь'}</b>
+      </div>
+    </div>
+    <div class="f"><button class="btn" id="x">Отмена</button><button class="btn pri" id="ok" disabled>Подтвердить</button></div>
+  </div></div>`;
+
+  const sync = () => {
+    const pick = document.querySelector('input[name=rs]:checked');
+    const other = pick && pick.value === 'Другое';
+    $('wrap').style.display = other ? 'block' : 'none';
+    const len = $('txt').value.trim().length;
+    if (other){
+      $('cc').textContent = len < 10 ? `ещё ${10 - len} симв.` : 'достаточно';
+      $('cc').className = 'cnt' + (len < 10 ? ' bad' : '');
+    }
+    $('ok').disabled = !pick || (other && len < 10);
+  };
+  [...document.querySelectorAll('input[name=rs]')].forEach(i => i.onchange = sync);
+  $('txt').oninput = sync;
+  $('x').onclick = close;
+  $('ok').onclick = () => {
+    const pick = document.querySelector('input[name=rs]:checked').value;
+    const note = pick === 'Другое' ? ` («${$('txt').value.trim()}»)` : '';
+    if (tid){ r.team = tid; r.by = who(); r.at = clock().slice(0,5); }
+    else { r.st='wait'; r.team=null; r.by=null; r.at=null; }
+    log(`Заявка №${r.id} · переназначение · ${pick}${note}`, true);
+    toast(tid ? `Переназначено · ${team(tid).name}` : 'Назначение снято, заявка в очереди');
+    close();
+  };
+}
+
+$('role').onchange = e => { S.role = e.target.value; render(); };
+$('svc').onchange  = e => { S.svc  = e.target.value; render(); };
+$('reset').onclick = () => { S = seed(); $('toast').innerHTML=''; render(); toast('Состояние сброшено'); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+render();
+</script>
+</body>
+</html>
